@@ -191,6 +191,37 @@
   )
 )
 
+;; Cancel an auction (only allowed before any bids are placed)
+(define-public (cancel-auction (auction-id-arg uint))
+  (let 
+    (
+      (auction (unwrap! (map-get? auctions { id: auction-id-arg }) ERR-AUCTION-NOT-FOUND))
+    )
+    (begin
+      ;; Check if auction is active
+      (asserts! (get is-active auction) ERR-AUCTION-INACTIVE)
+      
+      ;; Only the seller can cancel their auction
+      (asserts! (is-eq tx-sender (get seller auction)) ERR-UNAUTHORIZED)
+      
+      ;; Can only cancel if no bids have been placed
+      (asserts! (is-eq (get highest-bid auction) u0) ERR-UNAUTHORIZED)
+      
+      ;; Mark auction as inactive
+      (map-set auctions 
+        { id: auction-id-arg }
+        (merge auction 
+          {
+            is-active: false
+          }
+        )
+      )
+      
+      (ok true)
+    )
+  )
+)
+
 ;; Utility functions
 (define-read-only (get-auction (auction-id-arg uint))
   (map-get? auctions { id: auction-id-arg }))
